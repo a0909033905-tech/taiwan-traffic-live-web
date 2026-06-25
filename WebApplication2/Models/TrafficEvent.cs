@@ -12,6 +12,9 @@ namespace WebApplication2.Models
         public string Direction { get; set; } = "";     // 例如：北上、南下
         public string Location { get; set; } = "";      // 路段或公里牌
         public DateTime OccurredAt { get; set; }
+        // 經緯度，供地圖標記使用（x1 為經度、y1 為緯度）
+        public double? Longitude { get; set; }
+        public double? Latitude { get; set; }
         public string Description { get; set; } = "";
         public string Advice { get; set; } = "";
 
