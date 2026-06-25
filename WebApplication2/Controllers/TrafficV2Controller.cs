@@ -11,17 +11,17 @@ using WebApplication2.Models;
 
 namespace WebApplication2.Controllers
 {
-    public class TrafficController : Controller
+    public class TrafficV2Controller : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public TrafficController(IHttpClientFactory httpClientFactory)
+        public TrafficV2Controller(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
         }
 
-        // GET: /Traffic or /Traffic/Index
-        public async Task<IActionResult> Index(string region = "全部", string eventType = "全部")
+        // GET: /TrafficV2 or /TrafficV2/Index
+        public async Task<IActionResult> Index(string region = "全部", string eventType = "全部", string keyword = "")
         {
             List<TrafficEvent> events = new List<TrafficEvent>();
             string errorMessage = null;
@@ -83,10 +83,42 @@ namespace WebApplication2.Controllers
                 .OrderByDescending(e => e.OccurredAt == DateTime.MinValue ? DateTime.MinValue : e.OccurredAt)
                 .ToList();
 
+            // 搜尋邏輯
+            bool isSearchResult = false;
+            string searchMessage = "";
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var trimmedKeyword = keyword.Trim();
+                var searchResults = events.Where(e =>
+                    (e.Location?.Contains(trimmedKeyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (e.RoadName?.Contains(trimmedKeyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (e.Description?.Contains(trimmedKeyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (e.Direction?.Contains(trimmedKeyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (e.Advice?.Contains(trimmedKeyword, StringComparison.OrdinalIgnoreCase) ?? false)
+                ).ToList();
+
+                if (searchResults.Count == 0)
+                {
+                    // 搜尋無結果，保留原本的區域事件清單，顯示回退提示
+                    var regionDisplay = region == "全部" ? "全台" : region;
+                    searchMessage = $"查無「{trimmedKeyword}」相關資料，以下顯示{regionDisplay}最新交通事件。";
+                    isSearchResult = false;
+                }
+                else
+                {
+                    // 搜尋有結果
+                    events = searchResults;
+                    isSearchResult = true;
+                }
+            }
+
             ViewBag.Regions = TrafficEvent.Regions;
             ViewBag.EventTypes = TrafficEvent.EventTypes;
             ViewBag.SelectedRegion = region ?? "全部";
             ViewBag.SelectedEventType = eventType ?? "全部";
+            ViewBag.Keyword = keyword ?? "";
+            ViewBag.SearchMessage = searchMessage;
+            ViewBag.IsSearchResult = isSearchResult;
             ViewBag.TotalCount = events.Count;
             ViewBag.ErrorMessage = errorMessage;
 
